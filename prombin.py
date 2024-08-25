@@ -15,9 +15,6 @@ from bs4 import BeautifulSoup
 
 VERSION = "1.0-dev"
 
-OS_NAME = platform.system().lower()
-OS_ARCH = platform.machine()
-
 PROM_URL = "https://prometheus.io/download/"
 PROM_HOME = Path.joinpath(Path.home(), "prometheus")
 PROM_BIN = Path.joinpath(PROM_HOME, "prometheus")
@@ -34,6 +31,21 @@ ERROR_CHECKSUM = 2
 ERROR_HTML_PARSE = 3
 ERROR_PROM_NOT_INSTALLED = 4
 
+
+def get_os_details():
+    name = platform.system().lower()
+    arch = platform.machine()
+    details = {
+        "name": name,
+        "arch": arch
+    }
+
+    if arch == "x86_64":
+        details["arch"] = "amd64"
+
+    return details
+
+
 def fetch(url, stream=False):
     response = requests.get(url, stream=stream)
     if response.ok:
@@ -43,6 +55,7 @@ def fetch(url, stream=False):
         sys.exit(ERROR_FETCH)
 
 def get_download_details(lts=False):
+    os_details = get_os_details()
     page_doc = BeautifulSoup(fetch(PROM_URL).text, "html.parser")
     
     table_index = 0 if not lts else 1
@@ -53,7 +66,7 @@ def get_download_details(lts=False):
         version = section_version.find_all("tr")[0].find("td").get_text()
 
         section_files = table.find_all("tbody")[table_index]
-        download_row = section_files.find("tr", {"data-os": OS_NAME, "data-arch": OS_ARCH})
+        download_row = section_files.find("tr", {"data-os": os_details["name"], "data-arch": os_details["arch"]})
         filename_data = download_row.find("td", class_="filename")
 
         download_details = {
@@ -114,8 +127,10 @@ def compute_hash_checksum(download_details):
 
 def extract_and_copy_files(download_details, new_install=False):
     filename = download_details["filename"]
-    print("Unpacking {} ...".format(filename), end="")
     copy_from = filename.replace(".tar.gz", "")
+    copy_from = copy_from.replace(".zip", "")
+
+    print("Unpacking {} ...".format(filename), end="")
     shutil.unpack_archive(download_details["file_path"], extract_dir=PROM_TMP, format="gztar")
     print("OK")
     
