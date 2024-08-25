@@ -13,7 +13,7 @@ from pathlib import Path
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
-VERSION = "1.0-dev"
+__version__ = "1.0-dev"
 
 PROM_URL = "https://prometheus.io/download/"
 PROM_HOME = Path.joinpath(Path.home(), "prometheus")
