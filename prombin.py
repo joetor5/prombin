@@ -82,10 +82,10 @@ def get_download_details(lts=False):
     return download_details
 
 
-def download(lts=False, download_details=None):
+def download(lts=False, download_details=None, download_dir=PROM_TMP):
     
-    if not PROM_TMP.exists():
-        PROM_TMP.mkdir()
+    if not download_dir.exists():
+        download_dir.mkdir()
     
     if not download_details:
         details = get_download_details(lts)
@@ -93,12 +93,12 @@ def download(lts=False, download_details=None):
         details = download_details
     
     filename = details["filename"]
-    details["file_path"] = Path.joinpath(PROM_TMP, filename)
+    details["file_path"] = Path.joinpath(download_dir, filename)
 
     response = fetch(details["url"], stream=True)
     file_size = int(response.headers.get("Content-Length", 0))
 
-    print("Downloading {} ...".format(filename))
+    print("Downloading {}...".format(filename))
     with tqdm(total=file_size, unit="B", unit_scale=True, colour="GREEN") as download_bar:
         with open(details["file_path"], mode="wb") as f:
             for chunk in tqdm(response.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE)):
@@ -119,42 +119,46 @@ def compute_hash_checksum(download_details):
                 break
             sha256.update(data)
     
-    print("Validating checksum ...", end="")
-    if sha256.hexdigest() != checksum:
+    print("Validating checksum... ", end="")
+    digest = sha256.hexdigest()
+    if digest != checksum:
         print("error: checksum didn't match")
         sys.exit(ERROR_CHECKSUM)
     print("OK")
 
-def extract_and_copy_files(download_details, new_install=False):
+    return digest
+
+def extract_and_copy_files(download_details, extract_dir=PROM_TMP, install_dir=PROM_HOME, new_install=False):
     filename = download_details["filename"]
     copy_from = filename.replace(".tar.gz", "")
     copy_from = copy_from.replace(".zip", "")
 
-    print("Unpacking {} ...".format(filename), end="")
-    shutil.unpack_archive(download_details["file_path"], extract_dir=PROM_TMP, format="gztar")
+    print("Unpacking {}... ".format(filename), end="")
+    shutil.unpack_archive(download_details["file_path"], extract_dir=extract_dir,
+                          format="gztar", filter="data")
     print("OK")
     
     files = ["prometheus", "promtool"]
     if new_install:
         files.append("prometheus.yml")
-    
-    print("Installing files to {} ...".format(PROM_HOME), end="")
+
+    print("Installing files to {}... ".format(PROM_HOME), end="")
     for file in files:
-        file_path = Path.joinpath(PROM_TMP, copy_from, file)
-        shutil.copy(file_path, PROM_HOME)
+        file_path = Path.joinpath(extract_dir, copy_from, file)
+        shutil.copy(file_path, install_dir)
     print("OK")
 
 def is_prom_installed():
     return PROM_HOME.exists() and PROM_BIN.exists() and PROM_TOOL_BIN.exists() and PROM_CONFIG.exists() and PROM_VERSION_JSON.exists()
 
-def save_version_details(version, lts=False):
+def save_version_details(version, file_path=PROM_VERSION_JSON, lts=False):
     details = {"version": version, "lts": lts}
-    
-    with open(PROM_VERSION_JSON, "w") as f:
+
+    with open(file_path, "w") as f:
         f.write(json.dumps(details))
 
-def load_version_details():
-    with open(PROM_VERSION_JSON) as f:
+def load_version_details(file_path=PROM_VERSION_JSON):
+    with open(file_path) as f:
         return json.loads(f.read())
 
 def install(args):
@@ -168,7 +172,7 @@ def install(args):
     download_details = download(lts=args.lts)
     compute_hash_checksum(download_details)
     extract_and_copy_files(download_details, new_install=True)
-    save_version_details(download_details["version"], args.lts)
+    save_version_details(download_details["version"], lts=args.lts)
 
 def update(args):
     if not is_prom_installed():
@@ -192,11 +196,11 @@ def update(args):
 
     compute_hash_checksum(download_details)
     extract_and_copy_files(download_details)
-    save_version_details(latest_version, lts)
+    save_version_details(latest_version, lts=lts)
 
 def main():
     parser = argparse.ArgumentParser(prog="prombin")
-    parser.add_argument("-v", "--version", action="version", version=VERSION)
+    parser.add_argument("-v", "--version", action="version", version=__version__)
 
     subparsers = parser.add_subparsers(title="commands")
     

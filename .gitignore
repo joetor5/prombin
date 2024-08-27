@@ -1,3 +1,6 @@
 .venv
 disr
 *egg*
+.pytest_cache
+__pycache__
+tmp

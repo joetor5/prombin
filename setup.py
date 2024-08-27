@@ -1,3 +1,7 @@
+# Copyright (c) 2024 Joel Torres
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or https://opensource.org/license/mit.
+
 from setuptools import setup
 
 with open("README.md") as f:
@@ -5,7 +9,7 @@ with open("README.md") as f:
 
 setup(
     name="prombin",
-    description="Prometheus tool for installing/updating to the latest binary",
+    description="CLI tool for installing/updating the latest Prometheus precompiled binary",
     long_description=doc,
     long_description_content_type="text/markdown",
     author="Joel Torres",
