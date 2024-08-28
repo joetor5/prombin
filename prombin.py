@@ -3,6 +3,9 @@
 # file LICENSE or https://opensource.org/license/mit.
 
 import sys
+import os
+import subprocess
+import signal
 import argparse
 import requests
 import json
@@ -16,8 +19,9 @@ from bs4 import BeautifulSoup
 __version__ = "1.0-dev"
 
 PROM_URL = "https://prometheus.io/download/"
-PROM_HOME = Path.joinpath(Path.home(), "prometheus")
-PROM_BIN = Path.joinpath(PROM_HOME, "prometheus")
+PROM_PROC = "prometheus"
+PROM_HOME = Path.joinpath(Path.home(), PROM_PROC)
+PROM_BIN = Path.joinpath(PROM_HOME, PROM_PROC)
 PROM_TOOL_BIN = Path.joinpath(PROM_HOME, "promtool")
 PROM_CONFIG = Path.joinpath(PROM_HOME, "prometheus.yml")
 PROM_VERSION_JSON = Path.joinpath(PROM_HOME, ".version")
@@ -30,6 +34,7 @@ ERROR_FETCH = 1
 ERROR_CHECKSUM = 2
 ERROR_HTML_PARSE = 3
 ERROR_PROM_NOT_INSTALLED = 4
+ERROR_CMD_ARG = 5
 
 
 def get_os_details():
@@ -45,6 +50,16 @@ def get_os_details():
 
     return details
 
+def get_process_id(name=PROM_PROC):
+    try:
+        return int(subprocess.check_output(["pgrep", name]))
+    except subprocess.CalledProcessError:
+        return 0
+
+def stop_process(name=PROM_PROC):
+    pid = get_process_id(name)
+    if pid:
+        os.kill(pid, signal.SIGTERM)
 
 def fetch(url, stream=False):
     response = requests.get(url, stream=stream)
@@ -83,7 +98,6 @@ def get_download_details(lts=False):
 
 
 def download(lts=False, download_details=None, download_dir=PROM_TMP):
-    
     if not download_dir.exists():
         download_dir.mkdir()
     
@@ -194,7 +208,11 @@ def update(args):
         print("Installed Prometheus is on the latest version, nothing to update.")
         sys.exit(0)
 
+    download_details = download(lts=lts, download_details=download_details)
     compute_hash_checksum(download_details)
+    print("Stopping {} before copying files... ".format(PROM_PROC), end="")
+    stop_process()
+    print("OK")
     extract_and_copy_files(download_details)
     save_version_details(latest_version, lts=lts)
 
@@ -216,8 +234,9 @@ def main():
     args = parser.parse_args()
     try:
         args.func(args)
-    except AttributeError:
-        pass
+    except AttributeError as e:
+        print("Error running command: {}: {}".format(args, e))
+        sys.exit(ERROR_CMD_ARG)
     
 
 if __name__ == "__main__":

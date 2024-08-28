@@ -23,6 +23,8 @@ TEST_ARCHIVE_FILES = [TEST_BIN, TEST_TOOL_BIN, TEST_CONFIG]
 TEST_TAR_FILE = "{}.tar.gz".format(TEST_ARCHIVE_DIR)
 TEST_TAR_FILE_PATH = Path.joinpath(TEST_DOWNLOAD_TMP, TEST_TAR_FILE)
 TEST_ZIP_FILE = "{}.zip".format(TEST_ARCHIVE_DIR)
+TEST_PROC = "sleep"
+TEST_PROC_ARGS = "300 &"
 
 OS_NAME = "darwin"
 OS_ARCH = "arm64"
@@ -38,6 +40,14 @@ def test_get_os_details():
     details = get_os_details()
     assert details["name"] == OS_NAME
     assert details["arch"] == OS_ARCH
+
+def test_get_process_id():
+    subprocess.run(["bash", "-c", "{} {}".format(TEST_PROC, TEST_PROC_ARGS)])
+    assert get_process_id(name=TEST_PROC) != 0
+
+def test_stop_process():
+    stop_process(name=TEST_PROC)
+    assert get_process_id(name=TEST_PROC) == 0
 
 def test_fetch():
     resp = fetch(PROM_URL)
