@@ -3,6 +3,7 @@
 # file LICENSE or https://opensource.org/license/mit.
 
 from prombin import *
+import pytest
 import os
 import re
 import tarfile
@@ -28,6 +29,8 @@ TEST_PROC_ARGS = "300 &"
 
 OS_NAME = "darwin"
 OS_ARCH = "arm64"
+
+VERSION_REGEX = "[0-9]+\\.[0-9]+\\.[0-9]+"
 
 if not TEST_DIR.exists():
     TEST_DIR.mkdir()
@@ -59,11 +62,10 @@ def test_fetch():
 
 def test_get_download_details():
     details = get_download_details()
-    version_pattern = "[0-9]+\\.[0-9]+\\.[0-9]+"
-    file_pattern = "prometheus-{}.+[zipgz]$".format(version_pattern)
+    file_pattern = "prometheus-{}.+[zipgz]$".format(VERSION_REGEX)
     url_pattern = "https://github.+{}".format(file_pattern)
 
-    assert re.search(version_pattern, details["version"])
+    assert re.search(VERSION_REGEX, details["version"])
     assert re.search(url_pattern, details["url"])
     assert re.search(file_pattern, details["filename"])
     assert len(details["checksum"]) == 64
@@ -113,6 +115,63 @@ def test_download():
     download(download_details=details, download_dir=TEST_DOWNLOAD_TMP)
 
     assert TEST_TAR_FILE_PATH.exists()
+
+##############
+# These tests run on the real installation dir and will get deleted afterwards.
+##############
+
+@pytest.mark.skipif(is_prom_installed(), reason="Prometheus installed on the system")
+def test_install_update():
+
+    def assert_version(lts=False):
+        version_details = load_version_details()
+        assert re.search(VERSION_REGEX, version_details["version"])
+        if lts:
+            assert version_details["lts"]
+        else:
+            assert not version_details["lts"]
+
+    funcs = [install, update]
+
+    for lts in [False, True]:
+        args = CliArgs(lts=lts)
+
+        try:
+            update(args)
+        except SystemExit as e:
+            assert e.code == ERROR_PROM_NOT_INSTALLED
+
+        install(args)
+        assert is_prom_installed()
+        assert_version(lts)
+
+        for func in funcs:
+            try:
+                func(args)
+            except SystemExit as e:
+                assert e.code == 0
+
+        save_version_details(version=TEST_VERSION, lts=lts)
+        update(args)
+        assert is_prom_installed()
+        assert_version(lts)
+
+        args.check = True
+        try:
+            update(args)
+        except SystemExit as e:
+            assert e.code == 0
+
+        shutil.rmtree(PROM_HOME)
+
+##############
+# Utils
+##############
+
+class CliArgs:
+    def __init__(self, lts=False, check=False):
+        self.lts = lts
+        self.check = check
 
 def generate_archive():
     archive_dir = Path.joinpath(TEST_DOWNLOAD_TMP, TEST_ARCHIVE_DIR)
