@@ -27,8 +27,14 @@ TEST_ZIP_FILE = "{}.zip".format(TEST_ARCHIVE_DIR)
 TEST_PROC = "sleep"
 TEST_PROC_ARGS = "300 &"
 
-OS_NAME = "darwin"
-OS_ARCH = "arm64"
+OS_NAME = platform.system().lower()
+OS_ARCH = platform.machine().lower()
+OS_ARCH_MAP = {
+    "x86_64": "amd64",
+    "aarch64": "arm64",
+    "amd64": "amd64",
+    "arm64": "arm64"
+}
 
 VERSION_REGEX = "[0-9]+\\.[0-9]+\\.[0-9]+"
 
@@ -42,7 +48,7 @@ if not TEST_DOWNLOAD_TMP.exists():
 def test_get_os_details():
     details = get_os_details()
     assert details["name"] == OS_NAME
-    assert details["arch"] == OS_ARCH
+    assert details["arch"] == OS_ARCH_MAP[OS_ARCH]
 
 def test_get_process_id():
     subprocess.run(["bash", "-c", "{} {}".format(TEST_PROC, TEST_PROC_ARGS)])
