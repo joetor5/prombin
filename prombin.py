@@ -16,7 +16,7 @@ from pathlib import Path
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
-__version__ = "1.0"
+__version__ = "1.1-dev"
 
 PROM_URL = "https://prometheus.io/download/"
 PROM_PROC = "prometheus"
@@ -39,7 +39,7 @@ ERROR_CMD_ARG = 5
 
 def get_os_details():
     name = platform.system().lower()
-    arch = platform.machine()
+    arch = platform.machine().lower()
     details = {
         "name": name,
         "arch": arch
@@ -47,6 +47,8 @@ def get_os_details():
 
     if arch == "x86_64":
         details["arch"] = "amd64"
+    elif arch == "aarch64":
+        details["arch"] == "arm64"
 
     return details
 
