@@ -4,7 +4,8 @@ CLI tool for installing/updating the latest Prometheus precompiled binary from h
 
 ## Requirements
 
-Python >= 3.12
+* Python >= 3.12
+* OS: Linux, macOS
 
 ## Install
 ```
