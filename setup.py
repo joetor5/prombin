@@ -23,6 +23,7 @@ setup(
         "requests==2.32.3",
         "tqdm==4.66.5"
     ],
+    python_requires=">=3.12",
     entry_points={
         "console_scripts":[
             "prombin=prombin:main"
@@ -34,6 +35,7 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Internet :: WWW/HTTP",
         "Environment :: Console"
     ]
