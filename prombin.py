@@ -16,7 +16,7 @@ from pathlib import Path
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
-__version__ = "1.1-dev"
+__version__ = "1.1"
 
 PROM_URL = "https://prometheus.io/download/"
 PROM_PROC = "prometheus"
