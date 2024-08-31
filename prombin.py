@@ -48,7 +48,7 @@ def get_os_details():
     if arch == "x86_64":
         details["arch"] = "amd64"
     elif arch == "aarch64":
-        details["arch"] == "arm64"
+        details["arch"] = "arm64"
 
     return details
 
