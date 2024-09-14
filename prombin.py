@@ -16,7 +16,7 @@ from pathlib import Path
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 PROM_URL = "https://prometheus.io/download/"
 PROM_PROC = "prometheus"
@@ -75,7 +75,7 @@ def get_download_details(lts=False):
     os_details = get_os_details()
     page_doc = BeautifulSoup(fetch(PROM_URL).text, "html.parser")
     
-    table_index = 0 if not lts else 1
+    table_index = 1 if not lts else 2
     try:
         table = page_doc.find_all("table")[0] # prometheus table
 
